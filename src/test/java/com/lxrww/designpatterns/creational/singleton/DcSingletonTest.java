@@ -1,9 +1,13 @@
 package com.lxrww.designpatterns.creational.singleton;
 
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.RepetitionInfo;
+import org.junit.jupiter.api.TestInfo;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.io.*;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -18,8 +22,11 @@ class DcSingletonTest {
     void beforeEach(TestInfo testInfo, RepetitionInfo repetitionInfo) {
         int currentRepetition = repetitionInfo.getCurrentRepetition();
         int totalRepetitions = repetitionInfo.getTotalRepetitions();
-        String methodName = testInfo.getTestMethod().get().getName();
-        log.info("About to execute repetition {} of {} for {}", currentRepetition, totalRepetitions, methodName);
+
+        testInfo.getTestMethod().ifPresent(method -> {
+            String methodName = method.getName();
+            log.info("About to execute repetition {} of {} for {}", currentRepetition, totalRepetitions, methodName);
+        });
     }
 
     /**
@@ -41,5 +48,40 @@ class DcSingletonTest {
         log.info("instance number is: {}", instanceSet.size());
 
         assertEquals(1, instanceSet.size());
+    }
+
+    @RepeatedTest(1)
+    void serializationTest() {
+        DoubleCheckSingleton singleton = DoubleCheckSingleton.getInstance(0);
+
+        // Serialize
+        try {
+            FileOutputStream fileOut = new FileOutputStream("out.ser");
+            ObjectOutputStream out = new ObjectOutputStream(fileOut);
+            out.writeObject(singleton);
+            out.close();
+            fileOut.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        singleton.setValue(2);
+
+        // Deserialize
+        DoubleCheckSingleton singleton2 = null;
+        try {
+            FileInputStream fileIn = new FileInputStream("out.ser");
+            ObjectInputStream in = new ObjectInputStream(fileIn);
+            singleton2 = (DoubleCheckSingleton) in.readObject();
+            in.close();
+            fileIn.close();
+        } catch (IOException i) {
+            i.printStackTrace();
+        } catch (ClassNotFoundException c) {
+            System.out.println("singletons.DoubleCheckSingleton class not found");
+            c.printStackTrace();
+        }
+
+        assertEquals(singleton.getValue(), singleton2.getValue());
     }
 }

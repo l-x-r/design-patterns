@@ -1,8 +1,11 @@
 package com.lxrww.designpatterns.creational.singleton;
 
-public class DoubleCheckSingleton {
+import java.io.Serial;
+import java.io.Serializable;
 
-    private volatile static DoubleCheckSingleton instance;
+public class DoubleCheckSingleton implements Serializable {
+
+    private volatile static DoubleCheckSingleton INSTANCE = null;
 
     public int value;
 
@@ -10,24 +13,32 @@ public class DoubleCheckSingleton {
         return value;
     }
 
+    public void setValue(int i) {
+        this.value = i;
+    }
+
     private DoubleCheckSingleton(int value) {
-        this.value = value;
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        if (INSTANCE != null) {
+            throw new RuntimeException("This is singleton~");
         }
+
+        this.value = value;
     }
 
     public static DoubleCheckSingleton getInstance(int value) {
-        if (instance == null) {
+        if (INSTANCE == null) {
             synchronized (DoubleCheckSingleton.class) {
-                if (instance == null) {
-                    instance = new DoubleCheckSingleton(value);
+                if (INSTANCE == null) {
+                    INSTANCE = new DoubleCheckSingleton(value);
                 }
             }
         }
 
-        return instance;
+        return INSTANCE;
+    }
+
+    @Serial
+    protected Object readResolve() {
+        return INSTANCE;
     }
 }
